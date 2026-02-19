@@ -9,13 +9,14 @@ Performs:
 4. Sensitivity analysis (3mm vs 8mm trimming)
 
 Output:
-    Outputs/statistical_results/
-        jaw_level_paired_tests.csv
-        tooth_level_lmm_summary.txt
+    Outputs/statistical_analysis/by_trimming/{trimming}/
+        jaw_paired_tests.csv
+        tooth_lmm_results.csv
+        tooth_lmm_summary.txt
         effect_sizes.csv
 
 Usage:
-    python 05_statistical_analysis.py                    # Default: upper jaw, 8mm trimming
+    python 05_statistical_analysis.py                    # Default: upper jaw, 0mm trimming
     python 05_statistical_analysis.py --trimming 3mm    # Use 3mm trimming
     python 05_statistical_analysis.py --include-lower   # Include lower jaw
     python 05_statistical_analysis.py --include-tooth-type  # Add tooth type to LMM
