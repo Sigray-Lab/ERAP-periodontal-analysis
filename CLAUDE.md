@@ -33,7 +33,7 @@ This project extracts multi-modal imaging metrics from the **periodontal/periden
 
 ---
 
-## 2. Current Pipeline Status (as of 2026-01-30)
+## 2. Current Pipeline Status (as of 2026-01-31)
 
 ### Pipeline Complete
 
@@ -45,21 +45,23 @@ This project extracts multi-modal imaging metrics from the **periodontal/periden
 | Geometry Pipeline | `02_run_geometry_pipeline.py` | **COMPLETE** | 26 |
 | Tongue Exclusion | `03_create_tongue_exclusion.py` | **COMPLETE** | 26 |
 | Batch Quantification | `04_batch_quantify.py` | **COMPLETE** | 26 |
-| Statistical Analysis | `05_statistical_analysis.py` | **COMPLETE** | All 4 trimming levels |
+| Statistical Analysis | `05_statistical_analysis.py` | **COMPLETE** | All 5 trimming levels |
+| Longitudinal Delta | `06_longitudinal_delta.py` | **COMPLETE** | 13 subjects |
 
 ### Output Summary
 
 | Output | Location | Rows |
 |--------|----------|------|
-| **Tooth-level metrics** | `Outputs/tooth_level_metrics.csv` | 2125 rows |
-| **Jaw-level metrics** | `Outputs/jaw_level_metrics.csv` | 520 rows |
-| **Statistical results** | `Outputs/statistical_results/` | 16 files (4 per trimming level) |
+| **Tooth-level metrics** | `Outputs/cross_sectional/tooth_level_metrics.csv` | 2550 rows |
+| **Jaw-level metrics** | `Outputs/cross_sectional/jaw_level_metrics.csv` | 624 rows |
+| **Longitudinal deltas** | `Outputs/longitudinal/delta_summary.csv` | 13 subjects |
+| **Statistical results** | `Outputs/statistical_analysis/by_trimming/` | 20 files (4 per trimming level) |
 
 ### Tongue Trimming Options
 
-Four trimming levels available: **3mm, 5mm, 8mm, 10mm**
+Five trimming levels available: **0mm (default), 3mm, 5mm, 8mm, 10mm**
 
-Statistical analysis shows that **larger trimming (8-10mm) improves sensitivity** for detecting Baseline→Followup changes, likely due to better exclusion of tongue spillover signal.
+The default is 0mm (original tongue mask, no dilation). Larger trimming (8-10mm) may improve sensitivity for detecting Baseline→Followup changes due to better exclusion of tongue spillover signal.
 
 ---
 
@@ -102,9 +104,10 @@ python run_pipeline.py --list
 |------|--------|-------------|
 | 1 | `01_process_input_functions.py` | IDIF + plasma → interpolated input function |
 | 2 | `02_run_geometry_pipeline.py` | TotalSeg → geometry ROIs → CT-PET registration |
-| 3 | `03_create_tongue_exclusion.py` | 3/5/8/10mm tongue trimming |
+| 3 | `03_create_tongue_exclusion.py` | 0/3/5/8/10mm tongue trimming |
 | 4 | `04_batch_quantify.py` | Extract SUV, TPR, FUR metrics |
 | 5 | `05_statistical_analysis.py` | Paired t-tests and LMM (runs for all trimming levels) |
+| 6 | `06_longitudinal_delta.py` | PET↔PET registration, voxelwise delta, group t-tests |
 
 ### Run Individual Scripts
 
@@ -160,13 +163,18 @@ ERAP_FDG_ONH_periodontium_analysis/
     │   └── archive/                           # Legacy scripts (not used)
     │
     ├── Outputs/
-    │   ├── tooth_level_metrics.csv            # Per-tooth metrics (2125 rows)
-    │   ├── jaw_level_metrics.csv              # Jaw-level metrics (520 rows)
-    │   └── statistical_results/               # Statistical output files
-    │       ├── effect_sizes_*mm_tongue_trim.csv
-    │       ├── jaw_level_paired_tests_*mm_tongue_trim.csv
-    │       ├── tooth_level_lmm_results_*mm_tongue_trim.csv
-    │       └── tooth_level_lmm_summary_*mm_tongue_trim.txt
+    │   ├── cross_sectional/
+    │   │   ├── tooth_level_metrics.csv        # Per-tooth metrics (2550 rows)
+    │   │   └── jaw_level_metrics.csv          # Jaw-level metrics (624 rows)
+    │   ├── longitudinal/
+    │   │   ├── delta_summary.csv              # Per-subject pre-post deltas
+    │   │   └── ttest_results.csv              # Group-level one-sample t-tests
+    │   ├── statistical_analysis/by_trimming/  # Stats by trimming level
+    │   │   └── {0,3,5,8,10}mm/
+    │   │       ├── jaw_paired_tests.csv
+    │   │       ├── tooth_lmm_results.csv
+    │   │       └── effect_sizes.csv
+    │   └── archive/                           # Obsolete outputs
     │
     ├── DerivedData/
     │   ├── input_functions/                   # 26 processed IF files
@@ -223,10 +231,11 @@ Upper molar ROIs extend lingually toward the tongue, which has high FDG uptake. 
 
 ### The Solution
 
-Dilated tongue masks are created and subtracted from dental ROIs:
+Tongue masks (original or dilated) are subtracted from dental ROIs:
 
 | Dilation | Purpose |
 |----------|---------|
+| **0mm** | **Default** — original tongue mask, no dilation |
 | **3mm** | Conservative trim — removes only the hottest PVE |
 | **5mm** | Moderate trim |
 | **8mm** | Aggressive trim — removes lingual side, keeps buccal |
@@ -235,11 +244,13 @@ Dilated tongue masks are created and subtracted from dental ROIs:
 **Output files:**
 ```
 DerivedData/rois/totalsegmentator_teeth/sub-XXX_ses-YYY/
+├── tongue_exclusion_0mm.nii.gz    # Default
 ├── tongue_exclusion_3mm.nii.gz
 ├── tongue_exclusion_5mm.nii.gz
 ├── tongue_exclusion_8mm.nii.gz
 ├── tongue_exclusion_10mm.nii.gz
 └── continuous_masks_PETspace/
+    ├── tooth_XX_trimmed_0mm.nii.gz    # Default
     ├── tooth_XX_trimmed_3mm.nii.gz
     ├── tooth_XX_trimmed_5mm.nii.gz
     ├── tooth_XX_trimmed_8mm.nii.gz
@@ -267,7 +278,7 @@ Jaw-level ROIs can differ between Baseline and Followup due to different teeth b
 
 ## 8. Output CSV Structure
 
-### tooth_level_metrics.csv (2125 rows)
+### tooth_level_metrics.csv (2550 rows)
 
 | Column | Description |
 |--------|-------------|
@@ -276,14 +287,14 @@ Jaw-level ROIs can differ between Baseline and Followup due to different teeth b
 | `timepoint` | "Baseline" or "Followup" |
 | `fdi_tooth` | FDI tooth number (11-48) |
 | `jaw` | "upper" or "lower" |
-| `trimming` | "none", "3mm", "5mm", "8mm", or "10mm" |
+| `trimming` | "none", "0mm", "3mm", "5mm", "8mm", or "10mm" |
 | `n_voxels` | Voxel count in ROI |
 | `roi_volume_ml` | Effective volume |
 | `SUV_mean`, `SUV_p90` | Standardized uptake values |
 | `TPR_mean`, `TPR_p90` | Tissue-to-plasma ratios |
 | `FUR_mean_per_min`, `FUR_p90_per_min` | Fractional uptake rates |
 
-### jaw_level_metrics.csv (520 rows)
+### jaw_level_metrics.csv (624 rows)
 
 Same columns as tooth-level, plus `harmonized` and `n_shared_teeth`.
 
@@ -349,7 +360,8 @@ Reported as: min⁻¹
 | **4mm dilation for peridental shell** | Captures PDL space; enamel is metabolically dead |
 | **CT→PET rigid registration (ANTsPy)** | PET/CT misalignment up to ~1.5cm in some sessions |
 | **Linear interpolation for masks** | Continuous [0,1] masks preserve partial-volume weighting |
-| **Four tongue trimming options** | Allows sensitivity analysis (3/5/8/10mm) |
+| **Five tongue trimming options** | Allows sensitivity analysis (0/3/5/8/10mm, default=0mm) |
+| **PET↔PET direct registration** | Robust soft-tissue alignment for longitudinal comparison |
 | **Cross-session harmonization** | Only compare teeth present in BOTH sessions |
 | **HU-validated prosthetic exclusion** | TotalSeg prosthetic labels are often false positives |
 
