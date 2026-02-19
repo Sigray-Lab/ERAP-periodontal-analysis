@@ -1,6 +1,6 @@
 # ERAP Periodontal FDG-PET/MRI Analysis Pipeline
 
-Analysis pipeline for quantifying periodontal inflammation using FDG-PET/MRI imaging data from the **ERAP clinical trial** (rapamycin in early-stage Alzheimer's disease).
+Analysis pipeline for quantifying periodontal inflammation using FDG-PET/MRI imaging data from the **ERAP clinical trial**.
 
 ## Background
 
@@ -25,7 +25,6 @@ Rapamycin has shown anti-inflammatory effects on periodontitis in mouse models. 
 | Metric | Description |
 |--------|-------------|
 | **SUV** (mean, p90) | Standardized Uptake Value — body-weight-normalized tissue activity |
-| **TPR** (mean, p90) | Tissue-to-Plasma Ratio — plasma-normalized uptake |
 | **FUR** (mean, p90) | Fractional Uptake Rate — metabolic rate approximation (min⁻¹) |
 
 ## Quick Start
@@ -106,7 +105,7 @@ Upper molar ROIs extend lingually toward the tongue, which has high FDG uptake. 
 
 ## Development
 
-This pipeline was developed collaboratively using **[Claude Code](https://claude.ai/claude-code)** (Anthropic's AI coding agent) and is maintained by the [Sigray Lab](https://github.com/Sigray-Lab) at Karolinska Institutet.
+This pipeline was developed collaboratively using Claude Code (Anthropic's AI coding agent) and is maintained by the [Sigray Lab](https://github.com/Sigray-Lab) at Karolinska Institutet.
 
 ## References
 
