@@ -49,7 +49,8 @@ from config import (
     ensure_directories
 )
 from utils.io_utils import (
-    load_nifti, save_nifti, get_voxel_dimensions, get_voxel_volume_ml
+    load_nifti, load_nifti_labels, save_nifti, get_voxel_dimensions,
+    get_voxel_volume_ml
 )
 
 logger = logging.getLogger(__name__)
@@ -469,8 +470,7 @@ def main():
         sys.exit(1)
 
     logger.info(f"Loading segmentation: {seg_file}")
-    seg_data, seg_img = load_nifti(seg_file)
-    seg_data = seg_data.astype(np.int32)
+    seg_data, seg_img = load_nifti_labels(seg_file, logger=logger)
 
     # Also load the cropped CT for QC visualization
     crop_file = seg_dir / "crop.nii.gz"

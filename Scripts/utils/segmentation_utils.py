@@ -296,7 +296,7 @@ def run_dental_segmentator(ct_data: np.ndarray, ct_img: nib.Nifti1Image,
                 return None
 
             seg_img = nib.load(str(output_file))
-            seg_data_cropped = seg_img.get_fdata().astype(np.int32)
+            seg_data_cropped = np.round(seg_img.get_fdata()).astype(np.int32)
 
             # Map cropped segmentation back to full volume
             seg_data = np.zeros(ct_data.shape, dtype=np.int32)
@@ -500,7 +500,7 @@ def run_total_segmentator_dental(ct_data: np.ndarray, ct_img: nib.Nifti1Image,
             logger.warning("TotalSegmentator returned None")
             return None
 
-        seg_data_cropped = result_img.get_fdata().astype(np.int32)
+        seg_data_cropped = np.round(result_img.get_fdata()).astype(np.int32)
         labels_found = np.unique(seg_data_cropped)
         logger.info(f"TotalSegmentator teeth: {len(labels_found)-1} labels found")
 

@@ -75,7 +75,7 @@ from config import (
 )
 from utils.io_utils import (
     load_blinding_key, discover_subjects, discover_sessions,
-    find_ct_file, find_pet_file, load_nifti, save_nifti,
+    find_ct_file, find_pet_file, load_nifti, load_nifti_labels, save_nifti,
     get_voxel_dimensions, get_voxel_volume_ml
 )
 from utils.segmentation_utils import (
@@ -132,12 +132,12 @@ def run_step1_totalseg_teeth(subject_id, session_id, ct_file, ct_data, ct_img,
 
         # Save tooth instances
         if result.get('tooth_instances') is not None:
-            save_nifti(result['tooth_instances'].astype(np.int16), ct_img,
-                      ts_dir / "tooth_instances.nii.gz")
+            save_nifti(result['tooth_instances'], ct_img,
+                      ts_dir / "tooth_instances.nii.gz", dtype=np.int16)
 
         # Save multilabel in FULL CT space
         if result.get('full_seg_data') is not None:
-            save_nifti(result['full_seg_data'].astype(np.int16), ct_img, multilabel_file)
+            save_nifti(result['full_seg_data'], ct_img, multilabel_file, dtype=np.int16)
 
         # Save crop
         if result.get('cropped_img') is not None:
@@ -237,8 +237,7 @@ def run_step3_geometry_rois(subject_id, session_id, dilation_mm=DILATION_MM, for
         return False
 
     logger.info(f"  [Step 3] Generating geometry ROIs (dilation={dilation_mm}mm)...")
-    seg_data, seg_img = load_nifti(seg_file)
-    seg_data = seg_data.astype(np.int32)
+    seg_data, seg_img = load_nifti_labels(seg_file, logger=logger)
 
     # Load CT for HU-validation of prosthetic labels
     # Use crop CT if multilabel is in crop space, otherwise full CT
@@ -379,11 +378,11 @@ def run_step4_head_muscles(subject_id, session_id, ct_file, force=False):
                 logger.error(f"  [Step 4] No output file found after head_muscles run")
                 return False
 
-        data = img.get_fdata().astype(np.int32)
+        data = np.round(img.get_fdata()).astype(np.int32)
 
-        # Save multilabel
-        nib.save(nib.Nifti1Image(data, img.affine, img.header),
-                 str(out_dir / "head_muscles_multilabel.nii.gz"))
+        # Save multilabel (use dtype= to avoid scl_slope float corruption)
+        save_nifti(data, img, out_dir / "head_muscles_multilabel.nii.gz",
+                   dtype=np.int16)
 
         # Extract tongue (label 9)
         tongue = (data == 9).astype(np.uint8)

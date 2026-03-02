@@ -440,7 +440,7 @@ def resample_labels_to_pet(label_nib, pet_nib, transform_files):
     """
     import tempfile
 
-    label_data = label_nib.get_fdata().astype(np.int16)
+    label_data = np.round(label_nib.get_fdata()).astype(np.int16)
     unique_labels = np.unique(label_data)
     unique_labels = unique_labels[unique_labels > 0]
 

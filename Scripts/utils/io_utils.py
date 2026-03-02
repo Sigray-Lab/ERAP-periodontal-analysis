@@ -462,8 +462,50 @@ def load_nifti(filepath: Path) -> Tuple[np.ndarray, nib.Nifti1Image]:
     return data, img
 
 
+def load_nifti_labels(filepath: Path, dtype=np.int32,
+                      logger=None) -> Tuple[np.ndarray, nib.Nifti1Image]:
+    """
+    Load a NIfTI label/segmentation file with safe integer casting.
+
+    Applies np.round() before casting to prevent truncation errors when
+    NIfTI scl_slope/scl_inter produce non-integer float values
+    (e.g., 10.9996 instead of 11).
+
+    Logs a WARNING if any label values required rounding > 0.01, which
+    indicates the file was saved with problematic header scaling.
+
+    Args:
+        filepath: Path to NIfTI label file
+        dtype: Integer dtype to cast to (default: np.int32)
+        logger: Optional logger for warnings
+
+    Returns:
+        Tuple of (integer label array, nibabel image object)
+    """
+    import logging
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
+    img = nib.load(str(filepath))
+    float_data = img.get_fdata(dtype=np.float32)
+    rounded = np.round(float_data)
+
+    # Validate: check for non-integer float values (sign of header scaling)
+    max_deviation = np.max(np.abs(float_data - rounded))
+    if max_deviation > 0.01:
+        n_affected = int(np.sum(np.abs(float_data - rounded) > 0.01))
+        logger.warning(
+            f"Label file has non-integer float values (max deviation: "
+            f"{max_deviation:.4f}, {n_affected} voxels affected): {filepath}"
+        )
+
+    label_data = rounded.astype(dtype)
+    return label_data, img
+
+
 def save_nifti(data: np.ndarray, reference_img: nib.Nifti1Image,
-               output_path: Path, compress: bool = True) -> None:
+               output_path: Path, compress: bool = True,
+               dtype: np.dtype = None) -> None:
     """
     Save data as NIfTI file using reference image for header/affine.
 
@@ -472,11 +514,23 @@ def save_nifti(data: np.ndarray, reference_img: nib.Nifti1Image,
         reference_img: Reference image for header and affine
         output_path: Output file path
         compress: If True, save as .nii.gz (default)
+        dtype: If an integer dtype (e.g. np.int16), save as integer labels
+               with scl_slope=1/scl_inter=0 to avoid float precision loss
+               on reload. If None, saves as float32 (original behaviour).
     """
-    # Create new image with same affine and header
-    new_img = nib.Nifti1Image(data.astype(np.float32),
-                               reference_img.affine,
-                               reference_img.header)
+    if dtype is not None and np.issubdtype(dtype, np.integer):
+        # Integer label data: use clean header to prevent scl_slope/scl_inter
+        # from corrupting label values during the save→load round-trip.
+        header = reference_img.header.copy()
+        header.set_data_dtype(dtype)
+        header['scl_slope'] = 0  # 0 means "not set" in NIfTI spec
+        header['scl_inter'] = 0
+        new_img = nib.Nifti1Image(np.round(data).astype(dtype),
+                                   reference_img.affine, header)
+    else:
+        new_img = nib.Nifti1Image(data.astype(np.float32),
+                                   reference_img.affine,
+                                   reference_img.header)
 
     # Ensure output directory exists
     output_path.parent.mkdir(parents=True, exist_ok=True)

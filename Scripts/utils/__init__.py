@@ -13,6 +13,7 @@ from .io_utils import (
     find_stir_file,
     find_input_function_file,
     load_nifti,
+    load_nifti_labels,
     save_nifti,
     get_voxel_dimensions,
     get_suv_parameters,
