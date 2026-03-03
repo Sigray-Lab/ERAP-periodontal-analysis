@@ -275,7 +275,7 @@ def run_step3_geometry_rois(subject_id, session_id, dilation_mm=DILATION_MM, for
         'excluded_teeth': {str(k): v for k, v in qc['excluded_teeth'].items()},
         'dilation_mm': dilation_mm,
         'method': 'geometry_only',
-        'tooth_volumes_ml': {str(k): round(v, 4) for k, v in qc['tooth_volumes_ml'].items()},
+        'tooth_volumes_ml': {str(k): float(round(v, 4)) for k, v in qc['tooth_volumes_ml'].items()},
     }
     with open(roi_dir / "tooth_shells_lookup.json", 'w') as f:
         json.dump(lookup, f, indent=2)
